@@ -1,8 +1,6 @@
 Entryway analysis
 =================
 
-![Build](https://github.com/HergenrotherLab/entry-cli/workflows/Python%20application/badge.svg)
-
 The eNTRy rules are a series of guidelines that can increase small-molecule
 accumulation in gram-negative bacteria. A molecule is likely to accumulate if it
 contains few rotatable bonds, low three dimensionality, and an ionizable
@@ -13,78 +11,60 @@ by performing the necessary predictions of physiochemical properties. Although
 freely available at entry-way.org, these same calculations can be performed
 locally.
 
-Dependencies
-------------
+
+Installing the pakage
+---------------------
 
 Entryway relies on [OpenBabel](http://openbabel.org) and [RDKit](https://www.rdkit.org/) for handling chemical 
 structures and conformer generation and NumPy for globularity calculations. These dependencies are most conveniently 
 installed via [Conda](https://conda.io/docs/user-guide/install/index.html). The included `environment.yml` 
 file makes this straightforward:
 
-```bash
+```sh
+# Download source
+git clone https://github.com/aethertier/entry-cli.git
+cd entry-cli
+
+# Prepare conda environment
 conda env create -f environment.yml
 conda activate entry-cli-env
+
+# Install module 'entry_cli'
+make install
+# To uninstall the package later, run 'make uninstall'
 ```
 
-Alternatively, they can be installed individually:
-
-```bash
-wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-bash miniconda.sh -b -p $HOME/miniconda
-export PATH="$HOME/miniconda/bin:$PATH"
-conda update
-conda create -n entry-cli-env python=3.6 numpy -y
-conda install -c rdkit rdkit=2019.03.4.0 -y
-conda install -c openbabel openbabel=3.1.1 -y
-conda activate entry-cli-env
-```
 
 Running calculations
 --------------------
 
 Although other file formats will be implemented shortly, molecules can be submitted as SMILES strings for now.
-
 This can be achieved through command line arguments:
 
-```bash
+```sh
 # Ampicillin
-python calc_props.py -s "O=C(O)[C@@H]2N3C(=O)[C@@H](NC(=O)[C@@H](c1ccccc1)N)[C@H]3SC2(C)C"
+entry-cli -s "O=C(O)[C@@H]2N3C(=O)[C@@H](NC(=O)[C@@H](c1ccccc1)N)[C@H]3SC2(C)C"
 
 # Deoxynybomycin
-python calc_props.py -s "CC(C1=CC(C(C)=CC(N2C)=O)=C2C3=C1N4CO3)=CC4=O"
+entry-cli -s "CC(C1=CC(C(C)=CC(N2C)=O)=C2C3=C1N4CO3)=CC4=O"
 ```
 
 Alternatively, a batch file can be provided that contains several molecules with SMILES and names. Results are reported 
 as a csv file. The name of the output file is optional. If no output file is specified, then the base name of the batch
 file is used:
 
-```bash
+```sh
 # The following will provide the same result
-python calc_props.py -b tests/b-lactams.smi -o tests/b-lactam.csv
-python calc_props.py -b tests/b-lactams.smi
+entry-cli -b tests/b-lactams.smi -o tests/b-lactam.csv
+entry-cli -b tests/b-lactams.smi
 ```
 
-Installing as a package
------------------------
+Additional commnd line commands can be shown using the `--help` option:
 
-```sh
-# Download package and goto package directory
-git clone https://github.com/HergenrotherLab/entry-cli
-cd entry-cli
-
-# Make conda environment 'entry-cli-env'
-make init
-
-# Install package
-make install
-
-# To uninstall the package later, run 'make uninstall'
 ```
-
-After installing the package, the application is available from the command line:
-
-```sh
 usage: entry-cli [-h] [-s SMILES string | -b Batch file] [-o Output file]
+                 [--conf-cutoff <int>] [--rmsd-cutoff <int>]
+                 [--energy-cutoff <int>]
 
 Performs calculation of physiochemical properties of potential antibiotics.
 SMILES strings are parsed, conformers are generated, and properties
@@ -93,10 +73,18 @@ bonds, globularity, and PBF.
 
 optional arguments:
   -h, --help            show this help message and exit
+
+Input & Output Options:
   -s SMILES string, --smiles SMILES string
   -b Batch file, --batch Batch file
   -o Output file, --output Output file
                         Defaults to csv file with same name as input
+
+Conformer Generation Options:
+  --conf-cutoff <int>   Max number of conformers to generate, default: 100,000
+  --rmsd-cutoff <int>   Similarity threshold for conformers, default: 0.5
+  --energy-cutoff <int>
+                        Max relative energy between conformers, default: 50
 ```
 
 Alternatively, the functions can be imported as a python module.
@@ -104,6 +92,7 @@ Alternatively, the functions can be imported as a python module.
 ```python 
 from entry_cli.calc_props import smiles_to_ob, average_properties
 ```
+
 
 Citing
 ------

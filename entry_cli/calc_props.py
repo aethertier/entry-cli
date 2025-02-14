@@ -26,7 +26,7 @@ def main():
     args = parse_args(sys.argv[1:])
     if(args.smiles):
         mol = smiles_to_ob(args.smiles)
-        properties = average_properties(mol)
+        properties = average_properties(mol, args)
         properties['smiles'] = args.smiles
         # A file will be written if command line option provide, otherwise write to stdout
         if(args.output):
@@ -39,7 +39,7 @@ def main():
         mols_to_write = []
         for smiles, name in mols:
             mol = smiles_to_ob(smiles)
-            properties = average_properties(mol)
+            properties = average_properties(mol, args)
             properties['smiles'] = name
             mols_to_write.append(properties)
         write_csv(mols_to_write, args.output)
@@ -50,11 +50,21 @@ def parse_args(arguments):
     :return:  All script options
     """
     parser = argparse.ArgumentParser(description=__doc__)
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("-s", "--smiles", dest="smiles", metavar="SMILES string", default=None)
-    group.add_argument("-b", "--batch", dest="batch_file", metavar="Batch file", default=None)
-    parser.add_argument("-o", "--output", dest="output", metavar="Output file", default=None,
+
+    iogrp = parser.add_argument_group('Input & Output Options')
+    iogrpX = iogrp.add_mutually_exclusive_group()
+    iogrpX.add_argument("-s", "--smiles", dest="smiles", metavar="SMILES string", default=None)
+    iogrpX.add_argument("-b", "--batch", dest="batch_file", metavar="Batch file", default=None)
+    iogrp.add_argument("-o", "--output", dest="output", metavar="Output file", default=None,
                         help="Defaults to csv file with same name as input")
+    
+    confgrp = parser.add_argument_group('Conformer Generation Options')
+    confgrp.add_argument("--conf-cutoff", dest="conf_cutoff", metavar="<int>", type=int, default=100000,
+                    help="Max number of conformers to generate, default: 100,000")
+    confgrp.add_argument("--rmsd-cutoff", dest="rmsd_cutoff", metavar="<int>", type=float, default=0.5,
+                    help="Similarity threshold for conformers, default: 0.5")
+    confgrp.add_argument("--energy-cutoff", dest="energy_cutoff", metavar="<int>", type=float, default=50.0,
+                    help="Max relative energy between conformers, default: 50")
 
     args = parser.parse_args(arguments)
     if not args.smiles and not args.batch_file:
@@ -128,7 +138,7 @@ def write_csv(mols_to_write, filename):
             writer.writerow(mol)
 
 
-def average_properties(mol):
+def average_properties(mol, args=None):
     """
     Calculate all relevant properties for a given molecule averaged across conformers
 
@@ -139,7 +149,10 @@ def average_properties(mol):
 
     ..todo: remove reliance on pybel
     """
-    mols = run_confab(mol)
+    if args is None:
+        mols = run_confab(mol)
+    else:
+        mols = run_confab(mol, rmsd_cutoff=args.rmsd_cutoff, conf_cutoff=args.conf_cutoff, energy_cutoff=args.energy_cutoff)
     num_confs = mols.NumConformers()
 
     globs = np.empty(num_confs)
@@ -228,7 +241,7 @@ def run_confab(mol, rmsd_cutoff=0.5, conf_cutoff=100000, energy_cutoff=50.0, con
 
     pff.DiverseConfGen(rmsd_cutoff, conf_cutoff, energy_cutoff, confab_verbose)
 
-    pff.GetConformers(mol);
+    pff.GetConformers(mol)
 
     return mol
 
